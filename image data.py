@@ -13,10 +13,11 @@ class Image:
         self.height, self.width, self.channels = self.originalImage.shape
 
         img = cv2.cvtColor(self.originalImage, cv2.COLOR_BGR2RGB)
-        self.photoImage = PIL.ImageTk.PhotoImage(image = PIL.Image.fromarray(img))
-        self.copyImage = np.copy(image)
+        self.pillowImageCopy =PIL.Image.fromarray(img)
+        self.photoImage = PIL.ImageTk.PhotoImage(self.pillowImageCopy)
 
         self.mouseArea = None
+
 
     def show(self):
         self.window = tk.Toplevel()
@@ -31,10 +32,15 @@ class Image:
     def mouseMove(self, event):
         x = event.x
         y = event.y
-
+        dx = 100
+        dy = 100
+        area = (x-dx,y-dy,x+dx,y+dy)
         if self.mouseArea:
-            self.canvas.delete(self.mouseArea)
-        self.mouseArea = self.canvas.create_rectangle(x-5, y-5, x+5, y+5, width=1, outline='red')
+            self.canvas.coords(self.mouseArea, area)
+
+        else:
+            self.mouseArea = self.canvas.create_rectangle(area, width=1, outline='red')
+        program.showImage(self.pillowImageCopy.crop(area), scalor=1)
         # if event == cv2.EVENT_MOUSEMOVE:
         #     self.copyImage = np.copy(self.originalImage)
         #     self.copyImage = cv2.rectangle(self.copyImage, (x,y), (x+10, y+10), color=(0,0,255))
@@ -48,17 +54,39 @@ class ProgramManager:
     def __init__(self):
         self.lastKey = "q"
         self.windowName = 'program'
-        self.windowSize = '400x250'
+        self.windowHeight = 400
+        self.windowWidth = 250
+        self.windowSize = '{0}x{1}'.format(self.windowHeight, self.windowWidth)
         self.window = tk.Tk()
         self.window.geometry(self.windowSize)
         self.window.title(self.windowName)
 
+        self.canvas = tk.Canvas(self.window, height=self.windowHeight, width=self.windowWidth)
+        self.canvas.pack()
+
     def start(self):
         self.window.mainloop()
 
+    def updateWindowCanvasSize(self):
+        self.windowSize = '{0}x{1}'.format(self.windowHeight, self.windowWidth)
+        self.window.geometry(self.windowSize)
+        self.canvas['height'] = self.windowHeight
+        self.canvas['width'] = self.windowWidth
+
+    def showImage(self, image, scalor=1):
+        self.canvas.delete('all')
+        self.pillowImageCopy = image
+        self.pillowImageCopy = self.pillowImageCopy.resize((self.pillowImageCopy.size[0]*scalor,self.pillowImageCopy.size[1]*scalor))
+        self.windowHeight, self.windowWidth = self.pillowImageCopy.size
+        self.updateWindowCanvasSize()
+        self.photoImage = PIL.ImageTk.PhotoImage(self.pillowImageCopy)
+        self.canvas.create_image(0, 0, image=self.photoImage, anchor=tk.NW)
+
+
+program = ProgramManager()
 
 if __name__ == '__main__':
-    program = ProgramManager()
+
 
     image = cv2.imread(r'C:\Users\Evgen\Documents\My\Projects\computer vision\images\1.jpg')
     image = Image(image, "image 1", size=(640, 480))
@@ -67,5 +95,6 @@ if __name__ == '__main__':
 
     image.show()
     image2.show()
+
     program.start()
 
