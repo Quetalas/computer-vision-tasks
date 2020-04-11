@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 import tkinter as tk
 import PIL.Image, PIL.ImageTk
-
+from matplotlib import pyplot as plt
 class Image:
     def __init__(self, image, name, size=None):
         self.originalImage = np.copy(image)
@@ -12,8 +12,8 @@ class Image:
             self.originalImage = cv2.resize(self.originalImage, size)
         self.height, self.width, self.channels = self.originalImage.shape
 
-        img = cv2.cvtColor(self.originalImage, cv2.COLOR_BGR2RGB)
-        self.pillowImageCopy =PIL.Image.fromarray(img)
+        self.originalRGB = cv2.cvtColor(self.originalImage, cv2.COLOR_BGR2RGB)
+        self.pillowImageCopy =PIL.Image.fromarray(self.originalRGB)
         self.photoImage = PIL.ImageTk.PhotoImage(self.pillowImageCopy)
 
         self.mouseArea = None
@@ -25,6 +25,10 @@ class Image:
         self.canvas = tk.Canvas(self.window, height=self.height, width=self.width)
         self.canvas.pack()
         self.canvas.create_image(0, 0, image=self.photoImage, anchor=tk.NW)
+
+        self.infoVar = tk.StringVar()
+        self.infoLabel = tk.Label(self.window, text="", textvariable=self.infoVar)
+        self.infoLabel.pack(side=tk.BOTTOM)
         self.canvas.bind('<Motion>', self.mouseMove)
 
         self.window.title(self.name)
@@ -32,19 +36,40 @@ class Image:
     def mouseMove(self, event):
         x = event.x
         y = event.y
-        dx = 100
-        dy = 100
-        area = (x-dx,y-dy,x+dx,y+dy)
+        dx = 50
+        dy = 50
+        area = [x-dx,y-dy,x+dx,y+dy]
+        # Рисует прямоугольник
         if self.mouseArea:
             self.canvas.coords(self.mouseArea, area)
 
         else:
             self.mouseArea = self.canvas.create_rectangle(area, width=1, outline='red')
-        program.showImage(self.pillowImageCopy.crop(area), scalor=1)
-        # if event == cv2.EVENT_MOUSEMOVE:
-        #     self.copyImage = np.copy(self.originalImage)
-        #     self.copyImage = cv2.rectangle(self.copyImage, (x,y), (x+10, y+10), color=(0,0,255))
-        #     ProgramManager.activeWindowData = {''}
+        # Дальнейшие действия с выделенной областью
+        cropImage = self.cropImage(self.originalImage, area)
+        cropImage = cv2.cvtColor(cropImage, cv2.COLOR_BGR2RGB)
+
+        program.showImage(PIL.Image.fromarray(cropImage), scalor=1)
+        self.infoVar.set(self.computeStatistics(cropImage, (x, y)))
+
+    def cropImage(self, image, roi):
+        if roi[0] < 0:
+            roi[0] = 0
+        if roi[1] < 0:
+            roi[1] = 0
+        if roi[2] > self.width:
+            roi[2] = self.width
+        if roi[3] > self.height:
+            roi[3] = self.height
+        return image[roi[1] : roi[3], roi[0] : roi[2]]
+
+    def computeStatistics(self, image, pixel):
+        "Expect RGB format"
+        average = np.average(image)
+        std = np.std(image)
+        x, y = pixel
+        pointAverage = np.average(self.originalRGB[y, x])
+        return "x,y: ({}, {})={:.1f} average: {:.1f}    std: {:.1f}".format(x, y, pointAverage, average, std)
 
 
 class ProgramManager:
@@ -81,6 +106,8 @@ class ProgramManager:
         self.updateWindowCanvasSize()
         self.photoImage = PIL.ImageTk.PhotoImage(self.pillowImageCopy)
         self.canvas.create_image(0, 0, image=self.photoImage, anchor=tk.NW)
+
+
 
 
 program = ProgramManager()
