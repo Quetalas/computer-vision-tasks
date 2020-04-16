@@ -108,13 +108,8 @@ class ProgramManager:
         self.canvas.create_image(0, 0, image=self.photoImage, anchor=tk.NW)
 
 
-
-
-program = ProgramManager()
-
-if __name__ == '__main__':
-
-
+def task1():
+    program = ProgramManager()
     image = cv2.imread(r'C:\Users\Evgen\Documents\My\Projects\computer vision\images\1.jpg')
     image = Image(image, "image 1", size=(640, 480))
     image2 = cv2.imread(r'C:\Users\Evgen\Documents\My\Projects\computer vision\images\2.jpg')
@@ -125,3 +120,58 @@ if __name__ == '__main__':
 
     program.start()
 
+
+def readImages():
+    image1 = cv2.resize(cv2.imread(r'C:\Users\Evgen\Documents\My\Projects\computer vision\images\1.jpg'), (640, 480))
+    image2 = cv2.resize(cv2.imread(r'C:\Users\Evgen\Documents\My\Projects\computer vision\images\2.jpg'), (640, 480))
+    return [image1, image2]
+
+
+def RGBToComplex(images_list, show=True):
+    out = []
+    i = 0
+    for image in images_list:
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        dft = cv2.dft(np.float32(image), flags=cv2.DFT_COMPLEX_OUTPUT)
+        dft_shift = np.fft.fftshift(dft)
+        out.append(dft_shift)
+        if show:
+            magnitude_spectrum = 20 * np.log(cv2.magnitude(dft_shift[:, :, 0], dft_shift[:, :, 1]))
+            plt.figure(i)
+            plt.plot()
+            plt.imshow(magnitude_spectrum, cmap='gray')
+            plt.title('Magnitude of {} image'.format(i + 1)), plt.xticks([]), plt.yticks([])
+            i = i + 1
+    plt.show()
+    return out
+
+def ComplexToGrey(images_list):
+    out = []
+    for image in images_list:
+        f_ishift = np.fft.ifftshift(image)
+        img_back = cv2.idft(f_ishift)
+        img_back = cv2.magnitude(img_back[:, :, 0], img_back[:, :, 1])
+        out.append(img_back)
+    return out
+
+def showImages(images_list):
+    i = 0
+    for image in images_list:
+        plt.figure(i)
+        plt.plot()
+        plt.imshow(image, cmap='gray')
+        plt.title('{} image'.format(i + 1)), plt.xticks([]), plt.yticks([])
+        i = i + 1
+    plt.show()
+
+def task2():
+    images_list = readImages()
+    complex_images = RGBToComplex(images_list)
+    pass
+    new_images = ComplexToGrey(complex_images)
+    showImages(new_images)
+
+
+
+if __name__ == '__main__':
+    task2()
